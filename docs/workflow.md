@@ -4,7 +4,9 @@
 
 ## 首次运行
 
-环境：Python 3.10+、Node.js 18+、中文字体（本机 WenQuanYi Zen Hei）。
+唯一运行环境：用户现有 WSL2，使用其中的 Linux Agent、Python、Node.js、Playwright 与 Chromium。沿用现有目录和依赖，不另建环境。Windows 原生路径分隔符问题已撤出本轮修复/验收范围；不要求 PowerShell、Git Bash、macOS 兼容，也不新增跨平台层或 CI 矩阵。
+
+当前依赖已可用，直接从 init/demo 开始。下面 npm/浏览器安装命令仅供依赖确实丢失时恢复，不要求本轮重装。Python 3.10+、Node.js 18+，本机中文字体为 WenQuanYi Zen Hei。
 
 ```bash
 npm ci --ignore-scripts --no-audit --no-fund
@@ -18,7 +20,7 @@ python3 -m unittest discover -s tests -v
 
 依赖安装需要网络，图文渲染禁止 HTTP/HTTPS。首次 Linux 安装若缺系统库，按 Playwright 报错安装所需库；不要静默提权或执行远程安装脚本。平台浏览器/数据接口不影响此本地链路。
 
-本机已用现有 Chromium 151.0.7922.34（缓存修订 1234）实测通过，路径保存在忽略提交的 `.cache/browser.json`。新环境优先安装匹配版本；也可用 `XHS_CHROMIUM_PATH=/绝对路径/chrome-headless-shell` 明确指定已验证浏览器。不同浏览器/字体可能改变像素输出，必须复检。本次匹配版本的下载因速度慢主动停止，没有把未完成下载计作安装成功。受管沙箱若出现 `sandbox_host_linux.cc ... Operation not permitted`，需按工具审批机制运行本地浏览器，不能通过改稿掩盖环境错误。
+本机已用 WSL2 内 Linux Chromium 151.0.7922.34（缓存修订 1234）实测通过，路径保存在忽略提交的 `.cache/browser.json`。也可用 `XHS_CHROMIUM_PATH=/绝对路径/chrome-headless-shell` 指定已验证的 WSL2 Linux 浏览器。不同浏览器/字体可能改变像素输出，必须复检。早期匹配版本下载因速度慢主动停止，没有把未完成下载计作安装成功。受管沙箱若出现 `sandbox_host_linux.cc ... Operation not permitted`，需按工具审批机制运行本地浏览器，不能通过改稿掩盖环境错误。
 
 ## 账号与选题
 
@@ -45,6 +47,8 @@ python3 scripts/xhs.py render my-post --note '作者反馈：具体修改内容'
 每个完整版本位于 publish/v001、v002……，含 1080×1440 PNG、360px 手机预览、正文、来源、可编辑 HTML 和哈希清单。原素材不覆盖。源文件不变则返回已有版本；旧导出被手动改动会报错并保留现场。版本变动清除审核，已发布稿不允许原地重导出。创建/导出按单进程串行使用，非并发任务系统。
 
 渲染失败：查看错误，修正当前源文件，运行相同命令；不会新增完成版本。恢复旧稿：将旧版本 editable、brief.md、copy.md、sources.md 复制到当前笔记（先保存当前修改），再创建一个新版本，不能覆写旧版。缺失 PNG 或损坏已交付文件：先从备份恢复，或保留该目录另建修订笔记，不删除审计记录。
+
+中断恢复：完整版本目录已落定而 state.json 尚未更新时，重跑 render 会先校验最新版本的哈希清单，补齐版本/输入摘要、回到待审核并清除旧审核。输入未变不再渲染；中断后有新修改则先恢复状态再导出新版本，不回写旧源文件。若已发布/已复盘状态与版本冲突，报错并保留现场，不能自动改写发布记录。该恢复针对进程中断，不宣称断电后的文件系统持久性保证。
 
 上游版式检查：`node scripts/validate.mjs xhs-workspace/posts/my-post/editable/index.html`。失败必须修复；警告记录视觉理由，不添加虚假数据填满页面。
 
@@ -80,9 +84,11 @@ unit=count 且 basis=same-post-window 表示人工已确认分子与阅读来自
 python3 scripts/xhs.py metrics xhs-workspace/metrics/raw/normalized-input.csv --kind real
 ```
 
-输出 raw.csv 保留导入字节、normalized.json 保留缺失值、review.md 给出观察事实、可能解释、其他解释和一个实验。test/real 标记不符拒绝导入。内容哈希识别重复文件，不覆盖已有复盘批注。自动复盘文字只是待作者核对的分析草稿，不构成因果发现；Agent 应再结合实际标题、证据、推广等背景按 analytics Skill 实质复盘。修改解释时编辑 reviews 下报告，不改变原始导出。
+脚本输出分三层：raw.csv 保留导入字节；normalized.json 和 calculations.md 只计算有依据的指标；review-template.md 及 reviews 下的报告初始为“分析状态：待分析”。模板不预填原因猜测或实验。Agent 实质分析必须另外读取对应 post_id 的真实笔记版本、账号目标与数据，说明证据、可能解释及其他解释，再制定一个有依据的实验。资料不足保留待分析，不能将计算成功标为复盘完成。
 
-完成实质复盘后可运行 `python3 scripts/xhs.py reviewed my-post --report xhs-workspace/reviews/real/导入摘要.md --note '本轮观察与唯一实验'`，仅允许已发布且真实数据包含该 post_id 的笔记转为已复盘。单篇当前状态以 state.json 为准；topics.csv 是人工选题索引，推进时同步该行，不能用索引中的手写状态代替发布证据。
+test/real 标记不符拒绝导入。内容哈希识别重复文件；重试会校验原始/规范化数据并补齐缺失计算页、模板和 reviews 报告。所有已存在的报告和批注不覆盖。报告以完整临时文件原子落定，避免进程中断留下半份正式报告。旧导入若已有 review.md，缺失的 reviews 报告恢复其原文并加待分析说明；旧的固定解释不自动成为有效结论。中断在目录落定之前时重跑导入即可，不清空工作区。
+
+完成实质复盘后，将报告的唯一分析状态行改为“分析状态：已完成”，再运行 `python3 scripts/xhs.py reviewed my-post --report xhs-workspace/reviews/real/导入摘要.md --note '本轮观察与唯一实验'`。仅允许已发布、真实数据包含该 post_id 且报告已明确完成分析的笔记转为已复盘；待分析模板被拒绝。标记本身不证明分析正确，Agent/作者仍负有证据核对责任。单篇当前状态以 state.json 为准；topics.csv 是人工选题索引，推进时同步该行，不能用索引中的手写状态代替发布证据。
 
 ## 隐私、成本与调度
 

@@ -4,6 +4,7 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -28,9 +29,21 @@ def now():
     return datetime.now(timezone.utc).isoformat()
 
 def new_file(path, text):
+    """Publish a complete file without replacing existing author edits (WSL2)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    if not path.exists():
-        path.write_text(text)
+    if path.exists():
+        return
+    fd, name = tempfile.mkstemp(prefix='.new-', dir=path.parent)
+    tmp = Path(name)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            stream.write(text)
+        try:
+            os.link(tmp, path)  # atomic create, fails if another file already exists
+        except FileExistsError:
+            pass
+    finally:
+        tmp.unlink(missing_ok=True)
 
 def init(root):
     for name in ['sources', 'posts', 'metrics/raw', 'metrics/test', 'metrics/real', 'reviews/test', 'reviews/real']:
@@ -102,16 +115,33 @@ def verify_package(v):
             raise ValueError('导出被修改或丢失: '+name+'；保留现场，手动恢复旧文件或创建新版本')
     return m
 
+def recover_export(p, state):
+    """Reconcile a completed rename whose subsequent state write was interrupted."""
+    versions=sorted((p/'publish').glob('v[0-9][0-9][0-9]'))
+    if not versions:
+        return None
+    target=versions[-1]
+    latest=verify_package(target)
+    if latest['version']!=target.name or latest['demo']!=state['demo']:
+        raise ValueError('版本清单与笔记身份不一致，保留现场供人工核对')
+    if (state.get('version'),state.get('input_hash'))!=(target.name,latest['input_hash']):
+        if state['status'] in ['已发布','已复盘']:
+            raise ValueError('已发布记录与导出版本冲突，不能自动更改发布记录')
+        state.update(status='待审核',approval=None,version=target.name,input_hash=latest['input_hash'])
+        save(p/'state.json',state)
+    return target,latest
+
 def render(root,name,note):
     p=post_dir(root,name)
+    state=json.loads((p/'state.json').read_text())
+    completed=recover_export(p,state)
     original=inputs(p)
     key=fingerprint(original)
-    state=json.loads((p/'state.json').read_text())
     versions=sorted((p/'publish').glob('v[0-9][0-9][0-9]'))
-    if versions:
-        latest=verify_package(versions[-1])
+    if completed:
+        target,latest=completed
         if latest['input_hash']==key:
-            return versions[-1]
+            return target
     if state['status'] in ['已发布','已复盘']:
         raise ValueError('已发布内容须另建修订笔记，不覆盖发布记录')
     version=f'v{len(versions)+1:03d}'
@@ -137,6 +167,7 @@ def render(root,name,note):
 def approve(root,name,note):
     p=post_dir(root,name)
     s=json.loads((p/'state.json').read_text())
+    recover_export(p,s)
     if s['demo']:
         raise ValueError('演示包不能批准为正式发布稿；确认账号后另建正式笔记')
     if s['status']!='待审核' or not note.strip():
@@ -150,6 +181,7 @@ def approve(root,name,note):
 def published(root,name,url,confirmation):
     p=post_dir(root,name)
     s=json.loads((p/'state.json').read_text())
+    recover_export(p,s)
     if s['status']!='待发布' or not s.get('approval'):
         raise ValueError('尚未完成实质审核')
     verify_package(p/'publish'/s['version'])
@@ -168,6 +200,9 @@ def reviewed(root,name,report,note):
         raise ValueError('只有已发布内容可完成实质复盘，需填写复盘说明')
     if report.parent!=(root/'reviews/real').resolve() or not report.is_file():
         raise ValueError('需要本工作区真实数据复盘报告')
+    analysis_states=[line for line in report.read_text().splitlines() if line.startswith('分析状态：')]
+    if analysis_states!=['分析状态：已完成']:
+        raise ValueError('指标或待分析模板不能登记为实质复盘；需结合笔记和数据完成分析')
     data=json.loads((root/'metrics/real'/report.stem/'normalized.json').read_text())
     if data['kind']!='real' or not any(r['post_id']==name for r in data['rows']):
         raise ValueError('复盘数据未包含该笔记')
@@ -180,6 +215,60 @@ def date(s):
     d=datetime.fromisoformat(s)
     if d.tzinfo is None: raise ValueError('时间必须含时区')
     return d
+
+def calculation_report(normalized, kind):
+    groups={}
+    for r in normalized:
+        g=tuple(r[f] for f in ['account_id','platform','content_type','window_hours','paid','commercial','unit','basis'])
+        groups.setdefault(g,[]).append(r)
+    lines=['# 指标计算结果 · '+('测试样例，非账号经营结果' if kind=='test' else '用户提供数据'),'',
+           '仅计算已提供指标，不解释原因，不制定实验。缺失值在 JSON 中为 null。未计算点击率。',
+           '仅同账号、平台、类型、窗口、推广、商单及口径同组比较。','']
+    for g,rs in groups.items():
+        lines+=['## '+' / '.join(g),f'样本数：{len(rs)}','']
+        for r in rs:
+            fmt=lambda v:'缺失/口径不兼容' if v is None else f'{v:.2%}'
+            reads='缺失' if r['reads'] is None else r['reads']
+            lines.append(f"- {r['post_id']}：阅读={reads}；收藏/阅读={fmt(r['save_read_ratio'])}；涨粉/阅读={fmt(r['follow_read_ratio'])}")
+    return '\n'.join(lines)+'\n'
+
+def review_template(kind, calculation_link):
+    return f'''# 复盘模板 · {'测试样例，非账号经营结果' if kind=='test' else '用户提供数据'}
+
+分析状态：待分析
+
+指标计算：[计算结果]({calculation_link})。本模板不是 Agent 实质分析。
+
+## 实际笔记与证据
+待分析：关联 post_id、正文/组图版本、账号目标与数据来源；缺资料逐项列出，不将演示笔记配给无关测试指标。
+
+## 观察事实
+待分析：从计算结果选择实际可比记录，说明缺失值、观察窗口和样本限制。
+
+## 可能解释
+待分析：根据具体笔记内容及数据提出解释并引用证据；资料不足就保留待分析。
+
+## 其他解释
+待分析：列出本组记录中尚不能排除的因素，不能把假设写成事实。
+
+## 下一轮一个实验
+待分析：须有笔记与数据依据，明确一个变量、比较对象、指标和观察窗口；资料不足不预填实验。
+
+Agent 或作者完成实质分析后才可将状态改为已完成；标记本身不证明分析正确。
+'''
+
+def complete_import_reports(root, dest, normalized, kind):
+    # Fill only absent artifacts, including after a retry; never replace annotations.
+    new_file(dest/'calculations.md', calculation_report(normalized,kind))
+    new_file(dest/'review-template.md', review_template(kind,'calculations.md'))
+    legacy=dest/'review.md'
+    if legacy.is_file():
+        draft=('分析状态：待分析\n\n以下为旧版导入目录中的历史草稿，原文保留。'
+               '其中解释与实验须结合实际笔记重新核对，不代表本次已完成分析。\n\n'+legacy.read_text())
+    else:
+        draft=(dest/'review-template.md').read_text()
+    draft=draft.replace('](calculations.md)',f'](../../metrics/{kind}/{dest.name}/calculations.md)')
+    new_file(root/'reviews'/kind/(dest.name+'.md'),draft)
 
 def analyze(source,root,kind):
     raw=source.read_bytes()
@@ -215,32 +304,20 @@ def analyze(source,root,kind):
     dest=root/'metrics'/kind/key
     if dest.exists():
         if (dest/'raw.csv').read_bytes()!=raw: raise ValueError('导入摘要冲突')
+        saved=json.loads((dest/'normalized.json').read_text())
+        if saved!={'kind':kind,'source_sha256':hashlib.sha256(raw).hexdigest(),'rows':normalized}:
+            raise ValueError('已导入计算结果与原始数据不一致，保留现场供人工核对')
+        complete_import_reports(root,dest,normalized,kind)
         return dest
     dest.parent.mkdir(parents=True,exist_ok=True)
     stage=Path(tempfile.mkdtemp(prefix='.import-',dir=dest.parent))
     try:
         (stage/'raw.csv').write_bytes(raw)
         save(stage/'normalized.json',{'kind':kind,'source_sha256':hashlib.sha256(raw).hexdigest(),'rows':normalized})
-        groups={}
-        for r in normalized:
-            g=tuple(r[f] for f in ['account_id','platform','content_type','window_hours','paid','commercial','unit','basis'])
-            groups.setdefault(g,[]).append(r)
-        lines=['# '+('测试样例，非账号经营结果' if kind=='test' else '真实数据复盘（依赖导入口径的人工确认）'),'',
-               '## 观察事实','缺失值为 null；未计算点击率。仅同账号、平台、类型、窗口、推广、商单及口径同组比较。','']
-        for g,rs in groups.items():
-            lines+=['### '+' / '.join(g),f'样本数：{len(rs)}','']
-            for r in rs:
-                fmt=lambda v:'缺失/口径不兼容' if v is None else f'{v:.2%}'
-                lines.append(f"- {r['post_id']}：阅读={r['reads']}；收藏/阅读={fmt(r['save_read_ratio'])}；涨粉/阅读={fmt(r['follow_read_ratio'])}")
-        lines+=['','## 可能解释','收藏比例差异可能与步骤的可复用程度有关；目前仅为待验证解释。',
-                '','## 其他解释','推荐流量、发布时间、账号阶段、付费推广及读者构成均可能影响结果。缺失字段也影响比较。',
-                '','## 下一轮一个实验','待作者选择正式方向后，仅改变末页是否增加可执行清单；保持同栏目与相同发布后窗口。记录实际阅读和收藏；无兼容分母不比较。成功标准是获得可比记录，不预设增长承诺。',
-                '','样本不足，只作方向性信号，不宣称因果，不自动更改账号策略或生成已批准内容。']
-        (stage/'review.md').write_text('\n'.join(lines)+'\n')
         stage.rename(dest)
     finally:
         if stage.exists(): shutil.rmtree(stage)
-    new_file(root/'reviews'/kind/(key+'.md'),(dest/'review.md').read_text())
+    complete_import_reports(root,dest,normalized,kind)
     return dest
 
 def main():

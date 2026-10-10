@@ -3,6 +3,7 @@ import importlib.util
 import json
 import shutil
 import tempfile
+from unittest.mock import patch
 from pathlib import Path
 
 spec=importlib.util.spec_from_file_location('xhs',Path(__file__).resolve().parents[1]/'scripts/xhs.py')
@@ -14,7 +15,19 @@ with tempfile.TemporaryDirectory(prefix='xhs-acceptance-') as tmp:
     for f in source.iterdir():
         if f.is_dir():shutil.copytree(f,p/f.name,dirs_exist_ok=True)
         else:shutil.copy2(f,p/f.name)
-    first=x.render(root,'fixture','测试隔离：初版')
+    save=x.save
+    def interrupt_state(path,value):
+        if path==p/'state.json':raise OSError('TEST: interrupted after real browser export and rename')
+        save(path,value)
+    with patch.object(x,'save',side_effect=interrupt_state):
+        try:x.render(root,'fixture','测试隔离：真实导出后中断状态写入')
+        except OSError:pass
+        else:raise AssertionError('interruption was not exercised')
+    assert (p/'publish/v001/manifest.json').is_file()
+    assert json.loads((p/'state.json').read_text())['status']=='制作中'
+    with patch.object(x.subprocess,'run',side_effect=AssertionError('recovery must reuse export')):
+        first=x.render(root,'fixture','测试隔离：重试恢复状态')
+    assert json.loads((p/'state.json').read_text())['version']=='v001'
     h=x.digest(first/'01.png')
     x.approve(root,'fixture','TEST ONLY: simulated approval, not a user confirmation')
     assert x.render(root,'fixture','重复运行')==first
@@ -34,4 +47,4 @@ with tempfile.TemporaryDirectory(prefix='xhs-acceptance-') as tmp:
     try:x.render(root,'fixture','损坏后禁止覆盖')
     except ValueError:pass
     else:raise AssertionError('modified export overwritten')
-print('PASS: approval binding, repeat-run preservation, actual HTML revision and PNG change, old version retained, corruption detected. TEST ONLY, not author feedback acceptance.')
+print('PASS: real export interrupted after rename and recovered without rerender; approval binding, repeat-run preservation, actual HTML revision and PNG change, old version retained, corruption detected. TEST ONLY, not author feedback acceptance.')

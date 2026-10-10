@@ -2,14 +2,19 @@
 
 单账号、图文优先的本地内容工作流：来源 → 选题 → 原创文案 → HTML 图文 → 作者审核 → 人工发布包 → 真实数据 → 复盘。
 
+唯一运行环境是用户现有 **WSL2**，全部工具使用其中的 Linux 版本。沿用现有依赖，不新增 Windows 原生/macOS 适配或多系统 CI。
+
 **当前已跑通本地演示与测试数据复盘；账号定位、正式内容、作者实际改稿验收仍待确认。** 没有连接账号、发布、发送评论/私信、采购或创建定时任务。
 
 ## 直接查看
 
+- [本轮 WSL2 审核包：正文、六张图、手机预览和源文件](xhs-workspace/wsl2-review.html)
+- [WSL2 恢复路径与实际浏览器验收](docs/wsl2-acceptance.md)
+- [指标计算结果](xhs-workspace/metrics/test/7d70fe6f0d80965c/calculations.md) / [待分析模板](xhs-workspace/metrics/test/7d70fe6f0d80965c/review-template.md) / [Agent 证据核对：资料不足，待分析](xhs-workspace/reviews/test/wsl2-evidence-review.md)
 - [六页演示手机预览（质量修订版）](xhs-workspace/posts/demo-source-notes/publish/v002/preview.html)
 - [整组预览图](xhs-workspace/posts/demo-source-notes/publish/v002/contact-sheet.png)
 - [演示正文](xhs-workspace/posts/demo-source-notes/copy.md) / [来源](xhs-workspace/posts/demo-source-notes/sources.md) / [可编辑 HTML](xhs-workspace/posts/demo-source-notes/editable/index.html)
-- [测试复盘，非账号结果](xhs-workspace/reviews/test/7d70fe6f0d80965c.md)
+- [历史测试草稿（保留原文；其中固定解释和实验不作为有效分析）](xhs-workspace/reviews/test/7d70fe6f0d80965c.md)
 - [实际验收与未完成项](docs/acceptance.md)
 
 整个 xhs-workspace 默认被 Git 忽略。上面的运行产物存在于当前本机，不会随 clone 出现；可用下面命令从公开演示源重建。examples 仅含公开资料与测试数据。
@@ -17,6 +22,7 @@
 ## 运行
 
 ```bash
+# 当前 WSL2 依赖已可用，下两行仅在依赖丢失时用于恢复：
 npm ci --ignore-scripts --no-audit --no-fund
 # 本机已配置可用浏览器；新机器需要安装：
 PLAYWRIGHT_BROWSERS_PATH="$PWD/.cache/ms-playwright" npx playwright install chromium
@@ -41,5 +47,7 @@ node scripts/validate.mjs xhs-workspace/posts/demo-source-notes/editable/index.h
 ```
 
 渲染验收需要可运行的本地浏览器，受管沙箱可能需要工具审批。上游检查当前为 0 失败、6 警告，详见验收记录；机器检查不代替作者真实性判断。
+
+本轮 23 项回归及实际 WSL2 浏览器导出通过；导出后中断能恢复状态，导入后中断能补齐报告且保留批注。指标脚本不再预填原因与实验，资料不足时明确待分析。尚未收到作者真实修改意见，审核包等待该输入；技术自测不算反馈验收。
 
 新增付费依赖为零；已有模型额度、设备、电力与人工成本未计量。没有增长承诺、全托管运营或平台合规保证。
