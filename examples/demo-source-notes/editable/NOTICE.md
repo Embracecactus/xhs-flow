@@ -1,0 +1,1 @@
+HTML derived from op7418/guizang-social-card-skill Swiss seed at cf4b810fac1c73fb65a2bb31d8c9278d82cbc4c5. Original LICENSE retained. Modified 2026-10-10: local fonts, removed CDN, original Chinese demo copy and page layouts. Source provided in full.

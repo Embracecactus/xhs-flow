@@ -1,23 +1,45 @@
 # 薯流 · XHS Flow
 
-> 从一个选题，到一篇好内容，再到下一次改进。
+单账号、图文优先的本地内容工作流：来源 → 选题 → 原创文案 → HTML 图文 → 作者审核 → 人工发布包 → 真实数据 → 复盘。
 
-Agent 驱动的小红书内容运营工作流。
+**当前已跑通本地演示与测试数据复盘；账号定位、正式内容、作者实际改稿验收仍待确认。** 没有连接账号、发布、发送评论/私信、采购或创建定时任务。
 
-## 项目目标
+## 直接查看
 
-串联选题研究、文案创作、图文制作、人工审核、发布准备与数据复盘，让内容运营形成可持续改进的工作流。
+- [六页演示手机预览（质量修订版）](xhs-workspace/posts/demo-source-notes/publish/v002/preview.html)
+- [整组预览图](xhs-workspace/posts/demo-source-notes/publish/v002/contact-sheet.png)
+- [演示正文](xhs-workspace/posts/demo-source-notes/copy.md) / [来源](xhs-workspace/posts/demo-source-notes/sources.md) / [可编辑 HTML](xhs-workspace/posts/demo-source-notes/editable/index.html)
+- [测试复盘，非账号结果](xhs-workspace/reviews/test/7d70fe6f0d80965c.md)
+- [实际验收与未完成项](docs/acceptance.md)
 
-```text
-选题研究 → 文案创作 → 图文制作 → 人工审核 → 发布准备 → 数据复盘
+整个 xhs-workspace 默认被 Git 忽略。上面的运行产物存在于当前本机，不会随 clone 出现；可用下面命令从公开演示源重建。examples 仅含公开资料与测试数据。
+
+## 运行
+
+```bash
+npm ci --ignore-scripts --no-audit --no-fund
+# 本机已配置可用浏览器；新机器需要安装：
+PLAYWRIGHT_BROWSERS_PATH="$PWD/.cache/ms-playwright" npx playwright install chromium
+python3 scripts/demo.py
+python3 scripts/xhs.py render demo-source-notes --note '演示初稿'
+python3 scripts/xhs.py metrics examples/metrics-test.csv --kind test
 ```
 
-## 基本原则
+首次重建输出 v001；每次修改后导出新版本，源文件未变则复用已有版本。不要为追齐本机版本号反复生成。工作流由 Agent 使用 Skills 完成研究与写作，脚本不自行搜热点或凭空生产文章。
 
-自动化处理重复工作，创作者掌握内容与账号。
+## 使用与检查
 
-内容以真实材料和可核实的来源为基础；公开发布与对外互动由创作者审核和掌握。
+- [操作手册](docs/workflow.md)：账号信息、确认点、制作、修改、手工发布、数据字段和恢复方法。
+- [组件与许可](docs/components.md)：七个 self-media 模块和一套 guizang 图文组件，固定提交及逐文件哈希。
+- [项目 Agent 规则](AGENTS.md)：直接读取项目内 Skill，保留确认点与权限边界。
 
-## 当前状态
+```bash
+python3 scripts/verify_skills.py
+python3 -m unittest discover -s tests -v
+python3 tests/render_acceptance.py
+node scripts/validate.mjs xhs-workspace/posts/demo-source-notes/editable/index.html
+```
 
-项目初始化阶段。目前仅建立项目说明，上述流程为建设目标，尚未实现或接入小红书账号。
+渲染验收需要可运行的本地浏览器，受管沙箱可能需要工具审批。上游检查当前为 0 失败、6 警告，详见验收记录；机器检查不代替作者真实性判断。
+
+新增付费依赖为零；已有模型额度、设备、电力与人工成本未计量。没有增长承诺、全托管运营或平台合规保证。

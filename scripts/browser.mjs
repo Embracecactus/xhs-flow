@@ -1,0 +1,10 @@
+import path from 'node:path';
+import fs from 'node:fs';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+process.env.PLAYWRIGHT_BROWSERS_PATH ||= path.join(root,'.cache/ms-playwright');
+let local={};
+const config=path.join(root,'.cache/browser.json');
+if(fs.existsSync(config)) local=JSON.parse(fs.readFileSync(config,'utf8'));
+export const executablePath=process.env.XHS_CHROMIUM_PATH || local.executablePath || undefined;
+export const {chromium}=await import('playwright');

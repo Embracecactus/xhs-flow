@@ -1,0 +1,5 @@
+dataset_kind,post_id,account_id,platform,content_type,published_at,observed_at,exported_at,window_hours,paid,commercial,source,unit,basis,reads,saves,followers,impressions,likes
+test,test-01,TEST-ONLY,xhs,图文教程,2026-10-01T10:00:00+08:00,2026-10-02T10:00:00+08:00,2026-10-02T11:00:00+08:00,24,no,no,人工构造测试样例,count,same-post-window,100,10,2,,8
+test,test-02,TEST-ONLY,xhs,图文教程,2026-10-02T10:00:00+08:00,2026-10-03T10:00:00+08:00,2026-10-03T11:00:00+08:00,24,no,no,人工构造测试样例,count,same-post-window,200,12,,,20
+test,test-03,TEST-ONLY,xhs,图文教程,2026-10-03T10:00:00+08:00,2026-10-04T10:00:00+08:00,2026-10-04T11:00:00+08:00,24,no,no,人工构造测试样例,count,same-post-window,,5,,,6
+test,test-04,TEST-ONLY,xhs,图文教程,2026-10-04T10:00:00+08:00,2026-10-05T10:00:00+08:00,2026-10-05T11:00:00+08:00,24,yes,no,人工构造测试样例,count,same-post-window,300,15,3,1000,22
