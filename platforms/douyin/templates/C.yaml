@@ -1,0 +1,18 @@
+kind: C
+title: 待填写
+duration: 60
+width: 1920
+height: 1080
+voice: source
+description: 待填写
+hashtags: []
+cues: []
+scenes:
+  - start: 0
+    end: 60
+    heading: 实拍素材
+    asset: null
+    source_start: 0
+    speech: false
+    framing: 9:16裁切；主体必须在安全区
+    cut_evidence: 逐词边界或无对白镜头边界；不能截断对白

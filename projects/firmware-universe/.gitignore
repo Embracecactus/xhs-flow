@@ -1,0 +1,8 @@
+# Production media and generated artifacts stay local.
+output/
+references/videos/*
+!references/videos/README.md
+production/scenes/*
+production/animation/*
+production/assets/*
+!production/assets/asset-plan.md

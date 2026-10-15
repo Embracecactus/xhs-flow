@@ -1,4 +1,6 @@
 {
+  "name": "creator-flow",
+  "private": true,
   "dependencies": {
     "playwright": "1.60.0"
   }

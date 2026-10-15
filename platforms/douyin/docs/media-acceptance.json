@@ -1,0 +1,26 @@
+[
+  {
+    "kind": "A",
+    "version": "projects/fixture-a/v002",
+    "checks": {
+      "duration": true,
+      "format": true,
+      "subtitle_readability": true,
+      "audio": true
+    },
+    "source_sha256": "309029c918fe42b4f7ba90f9379a85950df79c9876259677ec81955364399a4b",
+    "limitations": "合成fixture；不证明真实人物裁切、对白ASR或实拍内容审核"
+  },
+  {
+    "kind": "C",
+    "version": "projects/fixture-c/v002",
+    "checks": {
+      "duration": true,
+      "format": true,
+      "subtitle_readability": true,
+      "audio": true
+    },
+    "source_sha256": "309029c918fe42b4f7ba90f9379a85950df79c9876259677ec81955364399a4b",
+    "limitations": "合成fixture；不证明真实人物裁切、对白ASR或实拍内容审核"
+  }
+]

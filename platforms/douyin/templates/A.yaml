@@ -1,0 +1,19 @@
+kind: A
+title: 待填写
+duration: 60
+width: 1920
+height: 1080
+voice: source
+description: 待填写
+hashtags: []
+cues: []
+scenes:
+  - start: 0
+    end: 60
+    heading: 真人口播
+    asset: null
+    source_start: 0
+    speech: true
+    transcript: null
+    framing: 保留面部；9:16居中裁切需人工核对
+    cut_evidence: 原片逐词时间与句末留白；不在词内裁剪

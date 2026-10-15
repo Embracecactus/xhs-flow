@@ -1,0 +1,4 @@
+interface:
+  display_name: "Self-media Workflow"
+  short_description: "Route a content task across its needed stages"
+  default_prompt: "Use $self-media-workflow to resume this content task at its smallest necessary stage."

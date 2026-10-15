@@ -1,0 +1,12 @@
+{
+  "reviewer": "填写实际审核者；Agent审核不等于作者确认",
+  "hook": {"verdict": "pending", "evidence": "前3秒实际画面/台词/时间点"},
+  "information_density": {"verdict": "pending", "evidence": "每个镜头的信息任务与删减理由"},
+  "subtitle_readability": {"verdict": "pending", "evidence": "手机尺寸实图检查：字号、换行、遮挡、越界"},
+  "audio": {"verdict": "pending", "evidence": "响度、真峰值、句尾完整性；试听是否完成单独记录"},
+  "pace": {"verdict": "pending", "evidence": "镜头时长与逐句配音适配结果"},
+  "cover": {"verdict": "pending", "evidence": "封面实图和标题一致性"},
+  "title": {"verdict": "pending", "evidence": "标题承诺是否被60秒内容兑现"},
+  "facts": {"verdict": "pending", "evidence": "逐项技术论断、来源对应与未知边界"},
+  "rights": {"verdict": "pending", "evidence": "原片权利、原创图解、配音和音乐许可；账号确认单独处理"}
+}

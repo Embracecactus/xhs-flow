@@ -1,0 +1,4 @@
+interface:
+  display_name: "技术手绘视频"
+  short_description: "从技术资料制作可编辑有声手绘视频，保留指定配音、分集逻辑和真实成片验收"
+  default_prompt: "使用 $technical-handdraw-video 按当前主题与规格制作完整有声手绘视频，必要时拆成连续几集。"

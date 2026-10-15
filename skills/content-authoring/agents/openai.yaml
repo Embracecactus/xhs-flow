@@ -1,0 +1,4 @@
+interface:
+  display_name: "Content Authoring"
+  short_description: "Create platform-native drafts from verified evidence"
+  default_prompt: "Use $content-authoring to turn this confirmed theme into platform-native drafts."

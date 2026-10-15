@@ -1,0 +1,4 @@
+interface:
+  display_name: "抖音网页发布"
+  short_description: "按单篇授权在抖音网页上传视频、核对封面与文案并单次提交核验结果"
+  default_prompt: "使用 $douyin-web-publish 按已有授权处理当前抖音视频的网页发布，并核验后台实际状态。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Content Analytics"
+  short_description: "Review content performance with valid comparisons"
+  default_prompt: "Use $content-analytics to review these supplied performance results."

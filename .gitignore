@@ -1,8 +1,9 @@
 node_modules/
 __pycache__/
 .cache/
+.local/
+.pi/
 .env*
 !.env.example
-xhs-workspace/
-local-skills/
+workspace/
 *.log
